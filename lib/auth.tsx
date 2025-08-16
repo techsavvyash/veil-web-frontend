@@ -8,7 +8,7 @@ import type { User } from "./types"
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, name: string, role: "buyer" | "seller") => Promise<void>
+  register: (email: string, password: string, firstName: string, lastName: string, role?: "buyer" | "seller") => Promise<void>
   logout: () => void
   loading: boolean
 }
@@ -24,8 +24,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (token) {
       apiClient
         .verifyToken()
-        .then(({ user }) => setUser(user))
-        .catch(() => localStorage.removeItem("auth_token"))
+        .then((response) => {
+          // Handle both direct user response and wrapped response
+          const user = response.user || response
+          setUser(user)
+        })
+        .catch((error) => {
+          console.error('Token verification failed:', error)
+          localStorage.removeItem("auth_token")
+        })
         .finally(() => setLoading(false))
     } else {
       setLoading(false)
@@ -38,8 +45,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(response.user)
   }
 
-  const register = async (email: string, password: string, name: string, role: "buyer" | "seller") => {
-    const response = await apiClient.register({ email, password, name, role })
+  const register = async (email: string, password: string, firstName: string, lastName: string, role: "buyer" | "seller" = "buyer") => {
+    const response = await apiClient.register({ email, password, firstName, lastName, role })
     localStorage.setItem("auth_token", response.token)
     setUser(response.user)
   }
