@@ -59,14 +59,7 @@ class ApiClient {
   }
 
   async verifyToken(): Promise<{ user: User }> {
-    const token = localStorage.getItem("auth_token")
-    if (!token) {
-      throw new Error("No token found")
-    }
-
-    // Extract user ID from mock token
-    const userId = token.replace("mock_jwt_token_", "")
-    return { user: { uid: userId, email: "mock@example.com", name: "Mock User", role: "buyer" } as User }
+    return this.request<{ user: User }>("/api/auth/verify")
   }
 
   // Marketplace endpoints
@@ -94,184 +87,127 @@ class ApiClient {
   }
 
   async subscribeToApi(uid: string, data: SubscribeRequest): Promise<Subscription> {
-    return {
-      uid: `sub-${Date.now()}`,
-      user_uid: "user-1",
-      api_uid: uid,
-      status: "active",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    } as Subscription
+    return this.request<Subscription>(`/api/marketplace/apis/${uid}/subscribe`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
   }
 
   async rateApi(uid: string, data: RateApiRequest): Promise<void> {
-    console.log(`[v0] Mock rating API ${uid} with rating:`, data.rating)
+    await this.request(`/api/marketplace/apis/${uid}/rate`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
   }
 
   async getCategories(): Promise<{ categories: Category[] }> {
     return this.request<{ categories: Category[] }>("/api/marketplace/categories")
   }
 
+  // Seller endpoints
   async getSellerDashboard(): Promise<any> {
-    return {
-      total_apis: 3,
-      total_subscribers: 4230,
-      total_revenue: 15420.5,
-      monthly_revenue: 2340.75,
-      recent_subscriptions: [],
-    }
+    return this.request("/api/seller/dashboard")
   }
 
-  async getSellerApis(): Promise<ApiListing[]> {
-    const response = await this.getMarketplaceApis()
-    return response.apis
+  async getSellerApis(): Promise<{ apis: ApiListing[] }> {
+    return this.request<{ apis: ApiListing[] }>("/api/seller/apis")
   }
 
   async createApi(data: CreateApiRequest): Promise<ApiListing> {
-    return {
-      uid: `api-${Date.now()}`,
-      name: data.name,
-      description: data.description,
-      documentation: data.documentation || "",
-      base_url: data.base_url,
-      version: data.version,
-      status: "pending",
-      seller_uid: "user-2",
-      category_uid: data.category_uid,
-      pricing_model: data.pricing_model,
-      base_price: data.base_price || 0,
-      price_per_request: data.price_per_request || 0,
-      rate_limit: data.rate_limit || 1000,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      average_rating: 0,
-      total_ratings: 0,
-      total_subscribers: 0,
-    } as ApiListing
+    return this.request<ApiListing>("/api/seller/apis", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
   }
 
-  async getSellerApiDetails(uid: string): Promise<ApiListing> {
-    const response = await this.getApiDetails(uid)
-    return response.api
+  async getSellerApiDetails(uid: string): Promise<{ api: ApiListing }> {
+    return this.request<{ api: ApiListing }>(`/api/seller/apis/${uid}`)
   }
 
   async updateApi(uid: string, data: Partial<CreateApiRequest>): Promise<ApiListing> {
-    const existing = await this.getSellerApiDetails(uid)
-    return { ...existing, ...data, updated_at: new Date().toISOString() }
+    return this.request<ApiListing>(`/api/seller/apis/${uid}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
   }
 
   async deleteApi(uid: string): Promise<void> {
-    console.log(`[v0] Mock deleting API ${uid}`)
+    await this.request(`/api/seller/apis/${uid}`, {
+      method: "DELETE",
+    })
   }
 
   async getApiAnalytics(uid: string): Promise<any> {
-    return {
-      total_requests: 15420,
-      monthly_requests: 2340,
-      revenue: 1250.3,
-      subscribers: 45,
-      usage_by_day: Array.from({ length: 30 }, (_, i) => ({
-        date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        requests: Math.floor(Math.random() * 100) + 50,
-      })),
-    }
+    return this.request(`/api/seller/apis/${uid}/analytics`)
   }
 
+  // API Keys endpoints
   async getApiKeys(): Promise<ApiKey[]> {
-    return [
-      {
-        uid: "key-1",
-        subscription_uid: "sub-1",
-        key: "veil_sk_test_1234567890abcdef",
-        name: "Production Key",
-        last_used: "2024-01-16T14:30:00Z",
-        created_at: "2024-01-15T10:00:00Z",
-        updated_at: "2024-01-15T10:00:00Z",
-      },
-    ]
+    return this.request<ApiKey[]>("/api/keys")
   }
 
   async createApiKey(subscriptionUid: string, data: CreateApiKeyRequest): Promise<ApiKey> {
-    return {
-      uid: `key-${Date.now()}`,
-      subscription_uid: subscriptionUid,
-      key: `veil_sk_${Math.random().toString(36).substring(2, 15)}`,
-      name: data.name,
-      last_used: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
+    return this.request<ApiKey>("/api/keys", {
+      method: "POST",
+      body: JSON.stringify({ ...data, subscription_uid: subscriptionUid }),
+    })
   }
 
   async getApiKeyDetails(uid: string): Promise<ApiKey> {
-    const keys = await this.getApiKeys()
-    const key = keys.find((k) => k.uid === uid)
-    if (!key) throw new Error("API key not found")
-    return key
+    return this.request<ApiKey>(`/api/keys/${uid}`)
   }
 
   async updateApiKey(uid: string, data: Partial<CreateApiKeyRequest>): Promise<ApiKey> {
-    const existing = await this.getApiKeyDetails(uid)
-    return { ...existing, ...data, updated_at: new Date().toISOString() }
+    return this.request<ApiKey>(`/api/keys/${uid}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
   }
 
   async deleteApiKey(uid: string): Promise<void> {
-    console.log(`[v0] Mock deleting API key ${uid}`)
+    await this.request(`/api/keys/${uid}`, {
+      method: "DELETE",
+    })
   }
 
   async regenerateApiKey(uid: string): Promise<ApiKey> {
-    const existing = await this.getApiKeyDetails(uid)
-    return {
-      ...existing,
-      key: `veil_sk_${Math.random().toString(36).substring(2, 15)}`,
-      updated_at: new Date().toISOString(),
-    }
+    return this.request<ApiKey>(`/api/keys/${uid}/regenerate`, {
+      method: "POST",
+    })
   }
 
+  // Profile endpoints
   async getProfile(): Promise<User> {
-    return {
-      uid: "user-1",
-      email: "john@example.com",
-      name: "John Doe",
-      role: "buyer",
-      created_at: "2024-01-15T10:00:00Z",
-      updated_at: "2024-01-15T10:00:00Z",
-    }
+    return this.request<User>("/api/profile")
   }
 
   async updateProfile(data: Partial<User>): Promise<User> {
-    const existing = await this.getProfile()
-    return { ...existing, ...data, updated_at: new Date().toISOString() }
+    return this.request<User>("/api/profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
   }
 
   async changePassword(data: ChangePasswordRequest): Promise<void> {
-    console.log(`[v0] Mock changing password for user`)
+    await this.request("/api/profile/change-password", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
   }
 
+  // User Dashboard endpoints
   async getUserDashboard(): Promise<any> {
-    return {
-      total_subscriptions: 5,
-      active_keys: 8,
-      monthly_usage: 12450,
-      monthly_spend: 89.5,
-    }
+    return this.request("/api/dashboard")
   }
 
   async getUserSubscriptions(): Promise<Subscription[]> {
-    return [
-      {
-        uid: "sub-1",
-        user_uid: "user-1",
-        api_uid: "api-1",
-        status: "active",
-        created_at: "2024-01-15T10:00:00Z",
-        updated_at: "2024-01-15T10:00:00Z",
-      },
-    ]
+    return this.request<Subscription[]>("/api/subscriptions")
   }
 
   async cancelSubscription(uid: string): Promise<void> {
-    console.log(`[v0] Mock canceling subscription ${uid}`)
+    await this.request(`/api/subscriptions/${uid}/cancel`, {
+      method: "POST",
+    })
   }
 }
 
