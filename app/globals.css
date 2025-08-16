@@ -1,0 +1,125 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Updated color palette to match Veil's futuristic olive/white/black theme */
+  --background: oklch(1 0 0); /* White */
+  --foreground: oklch(0.25 0.02 85); /* Olive for main text */
+  --card: oklch(1 0 0); /* White */
+  --card-foreground: oklch(0.25 0.02 85); /* Olive */
+  --popover: oklch(1 0 0); /* White */
+  --popover-foreground: oklch(0.25 0.02 85); /* Olive */
+  --primary: oklch(0.25 0.02 85); /* Olive Green */
+  --primary-foreground: oklch(1 0 0); /* White */
+  --secondary: oklch(0.4 0.02 85); /* Lighter olive for secondary elements */
+  --secondary-foreground: oklch(1 0 0); /* White */
+  --muted: oklch(0.95 0.01 85); /* Very light olive tint */
+  --muted-foreground: oklch(0.4 0.02 85); /* Medium olive */
+  --accent: oklch(0.35 0.02 85); /* Medium olive accent */
+  --accent-foreground: oklch(1 0 0); /* White */
+  --destructive: oklch(0.6 0.2 25); /* Red */
+  --destructive-foreground: oklch(1 0 0); /* White */
+  --border: oklch(0.85 0.01 85); /* Light olive border */
+  --input: oklch(0.98 0.005 85); /* Very light olive input background */
+  --ring: oklch(0.25 0.02 85 / 0.5); /* Olive ring shadow */
+  --chart-1: oklch(0.25 0.02 85);
+  --chart-2: oklch(0.4 0.02 85);
+  --chart-3: oklch(0.6 0.02 85);
+  --chart-4: oklch(0.8 0.01 85);
+  --chart-5: oklch(0.95 0.01 85);
+  --radius: 0.5rem;
+  --sidebar: oklch(1 0 0); /* White */
+  --sidebar-foreground: oklch(0.25 0.02 85); /* Olive */
+  --sidebar-primary: oklch(0.25 0.02 85); /* Olive */
+  --sidebar-primary-foreground: oklch(1 0 0); /* White */
+  --sidebar-accent: oklch(0.4 0.02 85); /* Light olive */
+  --sidebar-accent-foreground: oklch(1 0 0); /* White */
+  --sidebar-border: oklch(0.85 0.01 85); /* Light olive border */
+  --sidebar-ring: oklch(0.25 0.02 85 / 0.5); /* Olive ring shadow */
+}
+
+.dark {
+  /* Dark mode with inverted olive theme */
+  --background: oklch(0.08 0.01 85); /* Very dark olive */
+  --foreground: oklch(0.95 0.01 85); /* Very light olive */
+  --card: oklch(0.12 0.01 85); /* Dark olive card */
+  --card-foreground: oklch(0.9 0.01 85); /* Light olive */
+  --popover: oklch(0.12 0.01 85); /* Dark olive */
+  --popover-foreground: oklch(0.9 0.01 85); /* Light olive */
+  --primary: oklch(0.6 0.02 85); /* Bright olive */
+  --primary-foreground: oklch(0.08 0.01 85); /* Very dark olive */
+  --secondary: oklch(0.2 0.01 85); /* Medium dark olive */
+  --secondary-foreground: oklch(0.9 0.01 85); /* Light olive */
+  --muted: oklch(0.15 0.01 85); /* Dark muted olive */
+  --muted-foreground: oklch(0.6 0.01 85); /* Medium olive */
+  --accent: oklch(0.7 0.02 85); /* Bright olive accent */
+  --accent-foreground: oklch(0.08 0.01 85); /* Very dark olive */
+  --destructive: oklch(0.6 0.2 25); /* Red */
+  --destructive-foreground: oklch(1 0 0); /* White */
+  --border: oklch(0.25 0.01 85); /* Dark olive border */
+  --input: oklch(0.15 0.01 85); /* Dark olive input */
+  --ring: oklch(0.6 0.02 85 / 0.5); /* Bright olive ring */
+  --chart-1: oklch(0.6 0.02 85);
+  --chart-2: oklch(0.4 0.02 85);
+  --chart-3: oklch(0.8 0.01 85);
+  --chart-4: oklch(0.3 0.01 85);
+  --chart-5: oklch(0.15 0.01 85);
+  --sidebar: oklch(0.08 0.01 85); /* Very dark olive */
+  --sidebar-foreground: oklch(0.9 0.01 85); /* Light olive */
+  --sidebar-primary: oklch(0.6 0.02 85); /* Bright olive */
+  --sidebar-primary-foreground: oklch(0.08 0.01 85); /* Very dark olive */
+  --sidebar-accent: oklch(0.2 0.01 85); /* Dark olive accent */
+  --sidebar-accent-foreground: oklch(0.9 0.01 85); /* Light olive */
+  --sidebar-border: oklch(0.25 0.01 85); /* Dark olive border */
+  --sidebar-ring: oklch(0.6 0.02 85 / 0.5); /* Bright olive ring */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
