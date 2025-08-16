@@ -1,0 +1,112 @@
+export const mockUsers = [
+  {
+    uid: "user-1",
+    email: "john@example.com",
+    name: "John Doe",
+    role: "buyer" as const,
+    created_at: "2024-01-15T10:00:00Z",
+    updated_at: "2024-01-15T10:00:00Z",
+  },
+  {
+    uid: "user-2",
+    email: "jane@example.com",
+    name: "Jane Smith",
+    role: "seller" as const,
+    created_at: "2024-01-10T10:00:00Z",
+    updated_at: "2024-01-10T10:00:00Z",
+  },
+]
+
+export const mockCategories = [
+  { uid: "cat-1", name: "Authentication", description: "User authentication and authorization APIs" },
+  { uid: "cat-2", name: "Payment", description: "Payment processing and billing APIs" },
+  { uid: "cat-3", name: "AI/ML", description: "Artificial intelligence and machine learning APIs" },
+  { uid: "cat-4", name: "Data", description: "Data processing and analytics APIs" },
+  { uid: "cat-5", name: "Communication", description: "Messaging and communication APIs" },
+]
+
+export const mockApis = [
+  {
+    uid: "api-1",
+    name: "Stripe Payment API",
+    description: "Complete payment processing solution with support for multiple payment methods",
+    documentation: "# Stripe Payment API\n\nProcess payments securely with our comprehensive API...",
+    base_url: "https://api.stripe.com/v1",
+    version: "2023-10-16",
+    status: "approved" as const,
+    seller_uid: "user-2",
+    category_uid: "cat-2",
+    pricing_model: "usage" as const,
+    base_price: 0,
+    price_per_request: 0.029,
+    rate_limit: 1000,
+    created_at: "2024-01-10T10:00:00Z",
+    updated_at: "2024-01-15T10:00:00Z",
+    average_rating: 4.8,
+    total_ratings: 156,
+    total_subscribers: 1240,
+  },
+  {
+    uid: "api-2",
+    name: "OpenAI GPT API",
+    description: "Advanced AI language model for text generation, completion, and analysis",
+    documentation: "# OpenAI GPT API\n\nPowerful language model API for various text tasks...",
+    base_url: "https://api.openai.com/v1",
+    version: "v1",
+    status: "approved" as const,
+    seller_uid: "user-2",
+    category_uid: "cat-3",
+    pricing_model: "tiered" as const,
+    base_price: 20,
+    price_per_request: 0.002,
+    rate_limit: 3000,
+    created_at: "2024-01-08T10:00:00Z",
+    updated_at: "2024-01-12T10:00:00Z",
+    average_rating: 4.9,
+    total_ratings: 89,
+    total_subscribers: 890,
+  },
+  {
+    uid: "api-3",
+    name: "SendGrid Email API",
+    description: "Reliable email delivery service with advanced analytics and templates",
+    documentation: "# SendGrid Email API\n\nSend transactional and marketing emails at scale...",
+    base_url: "https://api.sendgrid.com/v3",
+    version: "v3",
+    status: "approved" as const,
+    seller_uid: "user-2",
+    category_uid: "cat-5",
+    pricing_model: "usage" as const,
+    base_price: 0,
+    price_per_request: 0.001,
+    rate_limit: 600,
+    created_at: "2024-01-05T10:00:00Z",
+    updated_at: "2024-01-10T10:00:00Z",
+    average_rating: 4.6,
+    total_ratings: 234,
+    total_subscribers: 2100,
+  },
+]
+
+export const mockSubscriptions = [
+  {
+    uid: "sub-1",
+    user_uid: "user-1",
+    api_uid: "api-1",
+    status: "active" as const,
+    created_at: "2024-01-15T10:00:00Z",
+    updated_at: "2024-01-15T10:00:00Z",
+  },
+]
+
+export const mockApiKeys = [
+  {
+    uid: "key-1",
+    subscription_uid: "sub-1",
+    key: "veil_sk_test_1234567890abcdef",
+    name: "Production Key",
+    last_used: "2024-01-16T14:30:00Z",
+    created_at: "2024-01-15T10:00:00Z",
+    updated_at: "2024-01-15T10:00:00Z",
+  },
+]
