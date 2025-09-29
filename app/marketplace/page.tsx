@@ -31,7 +31,9 @@ export default function MarketplacePage() {
           apiClient.getMarketplaceApis(),
           apiClient.getCategories()
         ])
-        
+
+        console.log('Marketplace APIs response:', apisResponse)
+        console.log('First API seller data:', apisResponse.apis[0]?.seller)
         setApis(apisResponse.apis)
         setCategories(categoriesResponse.categories)
       } catch (err) {

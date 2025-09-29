@@ -8,7 +8,7 @@ import type { User } from "./types"
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, firstName: string, lastName: string, role?: "buyer" | "seller") => Promise<void>
+  register: (data: { email: string; password: string; firstName: string; lastName: string; role?: "buyer" | "seller" }) => Promise<void>
   logout: () => void
   loading: boolean
 }
@@ -20,21 +20,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Check if we're in the browser
+    if (typeof window === 'undefined') {
+      setLoading(false)
+      return
+    }
+
     const token = localStorage.getItem("auth_token")
     if (token) {
+      console.log('Verifying existing token:', token.substring(0, 50) + '...')
       apiClient
         .verifyToken()
         .then((response) => {
           // Handle both direct user response and wrapped response
           const user = response.user || response
+          console.log('Token verification successful:', user)
           setUser(user)
         })
         .catch((error) => {
-          console.error('Token verification failed:', error)
+          console.error('Token verification failed, clearing token:', error)
           localStorage.removeItem("auth_token")
+          setUser(null)
         })
         .finally(() => setLoading(false))
     } else {
+      console.log('No token found in localStorage')
       setLoading(false)
     }
   }, [])
@@ -45,10 +55,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(response.user)
   }
 
-  const register = async (email: string, password: string, firstName: string, lastName: string, role: "buyer" | "seller" = "buyer") => {
-    const response = await apiClient.register({ email, password, firstName, lastName, role })
-    localStorage.setItem("auth_token", response.token)
-    setUser(response.user)
+  const register = async (data: { email: string; password: string; firstName: string; lastName: string; role?: "buyer" | "seller" }) => {
+    try {
+      // Clear any existing token first to avoid conflicts
+      localStorage.removeItem("auth_token")
+
+      const response = await apiClient.register(data)
+      localStorage.setItem("auth_token", response.token)
+      setUser(response.user)
+      console.log('Registration successful, new token stored:', response.token.substring(0, 50) + '...')
+    } catch (error) {
+      console.error('Registration failed:', error)
+      throw error
+    }
   }
 
   const logout = () => {

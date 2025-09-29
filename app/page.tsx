@@ -1,46 +1,41 @@
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight, Code, Shield, Zap, Users, TrendingUp, Star } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth"
+import { Navigation } from "@/components/navigation"
 
 export default function LandingPage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard')
+    }
+  }, [user, loading, router])
+
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse">
+          <div className="text-2xl font-bold text-foreground">Veil</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Only show landing page for unauthenticated users
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="text-2xl font-bold text-foreground">Veil</div>
-              <Badge variant="secondary" className="text-xs">
-                BETA
-              </Badge>
-            </div>
-            <div className="hidden md:flex items-center space-x-8">
-              <Link href="#marketplace" className="text-muted-foreground hover:text-foreground transition-colors">
-                Marketplace
-              </Link>
-              <Link href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
-                Pricing
-              </Link>
-              <Link href="#docs" className="text-muted-foreground hover:text-foreground transition-colors">
-                Docs
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/login">
-                <Button variant="ghost" className="text-foreground">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Get Started</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation />
 
       {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">

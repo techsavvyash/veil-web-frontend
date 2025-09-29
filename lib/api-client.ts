@@ -14,12 +14,21 @@ import type {
   ChangePasswordRequest,
 } from "./types"
 
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-const API_BASE_URL = "http://localhost:6969"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
 
 class ApiClient {
   private getAuthHeaders(): HeadersInit {
+    // Check if we're in the browser environment
+    if (typeof window === 'undefined') {
+      return {
+        "Content-Type": "application/json",
+      }
+    }
+
     const token = localStorage.getItem("auth_token")
+    console.log('API Client - getAuthHeaders - token found:', token ? 'Yes' : 'No')
+    console.log('API Client - getAuthHeaders - token length:', token ? token.length : 0)
+
     return {
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
@@ -28,17 +37,22 @@ class ApiClient {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`
+    const headers = {
+      ...this.getAuthHeaders(),
+      ...options.headers,
+    }
+
+    console.log(`API Client - ${options.method || 'GET'} ${endpoint}`)
+    console.log('API Client - Headers:', headers)
+
     const response = await fetch(url, {
       ...options,
-      headers: {
-        ...this.getAuthHeaders(),
-        ...options.headers,
-      },
+      headers,
     })
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.error || `API Error: ${response.status} ${response.statusText}`)
+      throw new Error(errorData.message || errorData.error || `API Error: ${response.status} ${response.statusText}`)
     }
 
     const result = await response.json()

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,35 +13,68 @@ import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Plus, X, Upload, CheckCircle, Play, Shield, BarChart3, Webhook } from "lucide-react"
 import Link from "next/link"
 import { Navigation } from "@/components/navigation"
+import { apiClient } from "@/lib/api-client"
+import { useAuth } from "@/lib/auth"
 
-const categories = [
-  "AI/ML",
-  "Weather",
-  "Finance",
-  "Communication",
-  "Utilities",
-  "Data",
-  "Security",
-  "Social Media",
-  "E-commerce",
-  "Analytics",
-]
+// Categories will be fetched from API
 
 const pricingModels = [
-  { value: "per-request", label: "Per Request" },
-  { value: "per-month", label: "Monthly Subscription" },
-  { value: "per-user", label: "Per User" },
-  { value: "tiered", label: "Tiered Pricing" },
+  { value: "per_request", label: "Per Request" },
+  { value: "monthly", label: "Monthly Subscription" },
+  { value: "yearly", label: "Yearly Subscription" },
+  { value: "free", label: "Free" },
 ]
 
 export default function OnboardAPIPage() {
   const [currentStep, setCurrentStep] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [submitError, setSubmitError] = useState("")
+  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const { user } = useAuth()
+
+  // Form data state
+  const [formData, setFormData] = useState({
+    name: "",
+    category: "",
+    shortDescription: "",
+    longDescription: "",
+    baseUrl: "",
+    version: "1.0.0",
+    price: "0.01",
+    pricingModel: "per_request" as "per_request" | "monthly" | "yearly" | "free",
+    requestLimit: 1000,
+    isPublic: true,
+    documentation: "",
+    currency: "USD",
+    sampleRequest: "",
+    sampleResponse: "",
+    apiKeyHeaderName: "X-API-Key",
+    apiKeyFormat: "uuid",
+    oauthAuthUrl: "",
+    oauthTokenUrl: "",
+    oauthScopes: "",
+    rateLimitPerMin: 60,
+    freeTierEnabled: false,
+    rateLimit: true,
+    ipWhitelist: false,
+    httpsOnly: true,
+    uptimeMonitoring: true,
+    performanceTracking: true,
+    errorMonitoring: true,
+    usageTracking: true,
+    termsAccepted: false,
+    slaAccepted: false,
+    supportAccepted: false
+  })
+  
   const [tags, setTags] = useState<string[]>([])
   const [newTag, setNewTag] = useState("")
   const [endpoints, setEndpoints] = useState([{ method: "GET", path: "", description: "" }])
   const [testResults, setTestResults] = useState<{ endpoint: string; status: string; responseTime: number }[]>([])
   const [authMethod, setAuthMethod] = useState("")
   const [webhookUrl, setWebhookUrl] = useState("")
+  const [categories, setCategories] = useState<Array<{id: number, name: string, description?: string}>>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
 
   const addTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
@@ -80,6 +113,82 @@ export default function OnboardAPIPage() {
 
   const nextStep = () => setCurrentStep(Math.min(currentStep + 1, 7))
   const prevStep = () => setCurrentStep(Math.max(currentStep - 1, 1))
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true)
+        const response = await apiClient.getCategories()
+        setCategories(response.categories)
+      } catch (error) {
+        console.error('Failed to fetch categories:', error)
+        // Fallback to basic categories if API fails
+        setCategories([
+          { id: 1, name: "Weather", description: "Weather and climate APIs" },
+          { id: 2, name: "Finance", description: "Financial data and trading APIs" },
+          { id: 3, name: "AI/ML", description: "Artificial Intelligence and Machine Learning APIs" },
+          { id: 4, name: "Communication", description: "Messaging and communication APIs" },
+        ])
+      } finally {
+        setCategoriesLoading(false)
+      }
+    }
+
+    fetchCategories()
+  }, [])
+
+  const updateFormData = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleSubmit = async () => {
+    if (!user) {
+      setSubmitError("You must be logged in to submit an API")
+      return
+    }
+
+    setLoading(true)
+    setSubmitError("")
+
+    try {
+      // Find the category ID from the fetched categories
+      const selectedCategory = categories.find(cat => cat.name === formData.category)
+      if (!selectedCategory) {
+        setSubmitError("Please select a valid category")
+        return
+      }
+
+      // Create full endpoint URL if path is relative
+      const endpointUrl = endpoints[0]?.path 
+        ? (endpoints[0].path.startsWith('http') ? endpoints[0].path : `${formData.baseUrl}${endpoints[0].path}`)
+        : formData.baseUrl
+
+      const apiData = {
+        name: formData.name,
+        description: formData.longDescription,
+        version: formData.version,
+        endpoint: endpointUrl,
+        baseUrl: formData.baseUrl,
+        categoryId: selectedCategory.id,
+        documentation: formData.documentation,
+        price: formData.price,
+        pricingModel: formData.pricingModel,
+        requestLimit: formData.requestLimit,
+        isPublic: formData.isPublic,
+        methods: endpoints.map(e => e.method) as ("GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD")[],
+        requiredHeaders: authMethod ? [{ name: "Authorization", description: `${authMethod} authentication required` }] : []
+      }
+
+      await apiClient.createApi(apiData)
+      setSubmitSuccess(true)
+    } catch (error) {
+      console.error("Failed to submit API:", error)
+      setSubmitError(error instanceof Error ? error.message : "Failed to submit API. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -123,6 +232,21 @@ export default function OnboardAPIPage() {
           </div>
         </div>
 
+        {/* Error/Success Messages */}
+        {submitError && (
+          <div className="max-w-4xl mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <div className="text-red-800 dark:text-red-200">{submitError}</div>
+          </div>
+        )}
+        
+        {submitSuccess && (
+          <div className="max-w-4xl mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="text-green-800 dark:text-green-200">
+              🎉 API submitted successfully! It will be reviewed and published to the marketplace soon.
+            </div>
+          </div>
+        )}
+
         <div className="max-w-4xl">
           {/* Step 1: Basic Information */}
           {currentStep === 1 && (
@@ -137,24 +261,57 @@ export default function OnboardAPIPage() {
                     <Label htmlFor="apiName" className="text-foreground">
                       API Name *
                     </Label>
-                    <Input id="apiName" placeholder="e.g., Weather Pro API" className="bg-input border-border" />
+                    <Input 
+                      id="apiName" 
+                      placeholder="e.g., Weather Pro API" 
+                      className="bg-input border-border"
+                      value={formData.name}
+                      onChange={(e) => updateFormData("name", e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="category" className="text-foreground">
                       Category *
                     </Label>
-                    <Select>
+                    <Select value={formData.category} onValueChange={(value) => updateFormData("category", value)}>
                       <SelectTrigger className="bg-input border-border">
-                        <SelectValue placeholder="Select a category" />
+                        <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select a category"} />
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
+                          <SelectItem key={category.id} value={category.name}>
+                            {category.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="baseUrl" className="text-foreground">
+                      Base URL *
+                    </Label>
+                    <Input 
+                      id="baseUrl" 
+                      placeholder="https://api.yourservice.com/v1" 
+                      className="bg-input border-border"
+                      value={formData.baseUrl}
+                      onChange={(e) => updateFormData("baseUrl", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="version" className="text-foreground">
+                      Version *
+                    </Label>
+                    <Input 
+                      id="version" 
+                      placeholder="1.0.0" 
+                      className="bg-input border-border"
+                      value={formData.version}
+                      onChange={(e) => updateFormData("version", e.target.value)}
+                    />
                   </div>
                 </div>
 
@@ -166,6 +323,8 @@ export default function OnboardAPIPage() {
                     id="shortDescription"
                     placeholder="Brief description of your API (max 100 characters)"
                     className="bg-input border-border"
+                    value={formData.shortDescription}
+                    onChange={(e) => updateFormData("shortDescription", e.target.value)}
                   />
                 </div>
 
@@ -178,6 +337,8 @@ export default function OnboardAPIPage() {
                     placeholder="Provide a comprehensive description of your API's capabilities, use cases, and benefits..."
                     rows={4}
                     className="bg-input border-border"
+                    value={formData.longDescription}
+                    onChange={(e) => updateFormData("longDescription", e.target.value)}
                   />
                 </div>
 
@@ -208,10 +369,14 @@ export default function OnboardAPIPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="baseUrl" className="text-foreground">
-                    Base URL *
-                  </Label>
-                  <Input id="baseUrl" placeholder="https://api.yourservice.com/v1" className="bg-input border-border" />
+                  <Label className="text-foreground">Documentation</Label>
+                  <Textarea
+                    placeholder="Provide additional documentation, usage examples, or any other relevant information..."
+                    rows={4}
+                    className="bg-input border-border"
+                    value={formData.documentation}
+                    onChange={(e) => updateFormData("documentation", e.target.value)}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -382,6 +547,8 @@ export default function OnboardAPIPage() {
                         placeholder="Provide a sample request body (JSON)"
                         rows={4}
                         className="bg-input border-border font-mono text-sm"
+                        value={formData.sampleRequest}
+                        onChange={(e) => updateFormData("sampleRequest", e.target.value)}
                       />
                     </div>
                     <div className="space-y-2">
@@ -390,6 +557,8 @@ export default function OnboardAPIPage() {
                         placeholder="Provide a sample response (JSON)"
                         rows={4}
                         className="bg-input border-border font-mono text-sm"
+                        value={formData.sampleResponse}
+                        onChange={(e) => updateFormData("sampleResponse", e.target.value)}
                       />
                     </div>
                   </div>
@@ -431,11 +600,16 @@ export default function OnboardAPIPage() {
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm text-muted-foreground">Header Name</Label>
-                        <Input placeholder="X-API-Key" className="bg-input border-border" />
+                        <Input 
+                          placeholder="X-API-Key" 
+                          className="bg-input border-border"
+                          value={formData.apiKeyHeaderName}
+                          onChange={(e) => updateFormData("apiKeyHeaderName", e.target.value)}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm text-muted-foreground">Key Format</Label>
-                        <Select>
+                        <Select value={formData.apiKeyFormat} onValueChange={(value) => updateFormData("apiKeyFormat", value)}>
                           <SelectTrigger className="bg-input border-border">
                             <SelectValue placeholder="Select format" />
                           </SelectTrigger>
@@ -459,6 +633,8 @@ export default function OnboardAPIPage() {
                         <Input
                           placeholder="https://api.yourservice.com/oauth/authorize"
                           className="bg-input border-border"
+                          value={formData.oauthAuthUrl}
+                          onChange={(e) => updateFormData("oauthAuthUrl", e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
@@ -466,11 +642,18 @@ export default function OnboardAPIPage() {
                         <Input
                           placeholder="https://api.yourservice.com/oauth/token"
                           className="bg-input border-border"
+                          value={formData.oauthTokenUrl}
+                          onChange={(e) => updateFormData("oauthTokenUrl", e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm text-muted-foreground">Scopes</Label>
-                        <Input placeholder="read write admin" className="bg-input border-border" />
+                        <Input 
+                          placeholder="read write admin" 
+                          className="bg-input border-border"
+                          value={formData.oauthScopes}
+                          onChange={(e) => updateFormData("oauthScopes", e.target.value)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -482,19 +665,31 @@ export default function OnboardAPIPage() {
                   <Label className="text-foreground">Security Features</Label>
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="rateLimit" />
+                      <Checkbox 
+                        id="rateLimit"
+                        checked={formData.rateLimit}
+                        onCheckedChange={(checked) => updateFormData("rateLimit", checked)}
+                      />
                       <Label htmlFor="rateLimit" className="text-sm text-muted-foreground">
                         Enable rate limiting
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="ipWhitelist" />
+                      <Checkbox 
+                        id="ipWhitelist"
+                        checked={formData.ipWhitelist}
+                        onCheckedChange={(checked) => updateFormData("ipWhitelist", checked)}
+                      />
                       <Label htmlFor="ipWhitelist" className="text-sm text-muted-foreground">
                         Allow IP whitelisting
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="httpsOnly" />
+                      <Checkbox 
+                        id="httpsOnly"
+                        checked={formData.httpsOnly}
+                        onCheckedChange={(checked) => updateFormData("httpsOnly", checked)}
+                      />
                       <Label htmlFor="httpsOnly" className="text-sm text-muted-foreground">
                         Require HTTPS only
                       </Label>
@@ -520,25 +715,41 @@ export default function OnboardAPIPage() {
                   <Label className="text-foreground">Monitoring Configuration</Label>
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="uptime" defaultChecked />
+                      <Checkbox 
+                        id="uptime"
+                        checked={formData.uptimeMonitoring}
+                        onCheckedChange={(checked) => updateFormData("uptimeMonitoring", checked)}
+                      />
                       <Label htmlFor="uptime" className="text-sm text-muted-foreground">
                         Enable uptime monitoring
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="performance" defaultChecked />
+                      <Checkbox 
+                        id="performance"
+                        checked={formData.performanceTracking}
+                        onCheckedChange={(checked) => updateFormData("performanceTracking", checked)}
+                      />
                       <Label htmlFor="performance" className="text-sm text-muted-foreground">
                         Track response times and performance metrics
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="errors" defaultChecked />
+                      <Checkbox 
+                        id="errors"
+                        checked={formData.errorMonitoring}
+                        onCheckedChange={(checked) => updateFormData("errorMonitoring", checked)}
+                      />
                       <Label htmlFor="errors" className="text-sm text-muted-foreground">
                         Monitor error rates and status codes
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="usage" defaultChecked />
+                      <Checkbox 
+                        id="usage"
+                        checked={formData.usageTracking}
+                        onCheckedChange={(checked) => updateFormData("usageTracking", checked)}
+                      />
                       <Label htmlFor="usage" className="text-sm text-muted-foreground">
                         Track API usage and request patterns
                       </Label>
@@ -611,7 +822,7 @@ export default function OnboardAPIPage() {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label className="text-foreground">Pricing Model *</Label>
-                  <Select>
+                  <Select value={formData.pricingModel} onValueChange={(value) => updateFormData("pricingModel", value as "per_request" | "monthly" | "yearly" | "free")}>
                     <SelectTrigger className="bg-input border-border">
                       <SelectValue placeholder="Select pricing model" />
                     </SelectTrigger>
@@ -630,13 +841,21 @@ export default function OnboardAPIPage() {
                     <Label htmlFor="price" className="text-foreground">
                       Price *
                     </Label>
-                    <Input id="price" type="number" step="0.01" placeholder="0.01" className="bg-input border-border" />
+                    <Input 
+                      id="price" 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="0.01" 
+                      className="bg-input border-border"
+                      value={formData.price}
+                      onChange={(e) => updateFormData("price", e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="currency" className="text-foreground">
                       Currency *
                     </Label>
-                    <Select>
+                    <Select value={formData.currency} onValueChange={(value) => updateFormData("currency", value)}>
                       <SelectTrigger className="bg-input border-border">
                         <SelectValue placeholder="USD" />
                       </SelectTrigger>
@@ -652,7 +871,11 @@ export default function OnboardAPIPage() {
                 <div className="space-y-4">
                   <Label className="text-foreground">Free Tier (Optional)</Label>
                   <div className="flex items-center space-x-2">
-                    <Checkbox id="freeTier" />
+                    <Checkbox 
+                      id="freeTier"
+                      checked={formData.freeTierEnabled}
+                      onCheckedChange={(checked) => updateFormData("freeTierEnabled", checked)}
+                    />
                     <Label htmlFor="freeTier" className="text-muted-foreground">
                       Offer a free tier with limited usage
                     </Label>
@@ -662,13 +885,27 @@ export default function OnboardAPIPage() {
                       <Label htmlFor="freeRequests" className="text-foreground">
                         Free Requests per Month
                       </Label>
-                      <Input id="freeRequests" type="number" placeholder="1000" className="bg-input border-border" />
+                      <Input 
+                        id="freeRequests" 
+                        type="number" 
+                        placeholder="1000" 
+                        className="bg-input border-border"
+                        value={formData.requestLimit}
+                        onChange={(e) => updateFormData("requestLimit", parseInt(e.target.value) || 1000)}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="rateLimits" className="text-foreground">
                         Rate Limits (requests/minute)
                       </Label>
-                      <Input id="rateLimits" type="number" placeholder="60" className="bg-input border-border" />
+                      <Input 
+                        id="rateLimits" 
+                        type="number" 
+                        placeholder="60" 
+                        className="bg-input border-border"
+                        value={formData.rateLimitPerMin}
+                        onChange={(e) => updateFormData("rateLimitPerMin", parseInt(e.target.value) || 60)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -689,13 +926,16 @@ export default function OnboardAPIPage() {
                     <h3 className="font-semibold text-foreground mb-2">API Information</h3>
                     <div className="bg-muted/30 rounded-lg p-4 space-y-2">
                       <p>
-                        <span className="font-medium">Name:</span> Weather Pro API
+                        <span className="font-medium">Name:</span> {formData.name || 'Not specified'}
                       </p>
                       <p>
-                        <span className="font-medium">Category:</span> Weather
+                        <span className="font-medium">Category:</span> {formData.category || 'Not selected'}
                       </p>
                       <p>
-                        <span className="font-medium">Base URL:</span> https://api.weatherpro.com/v1
+                        <span className="font-medium">Base URL:</span> {formData.baseUrl || 'Not specified'}
+                      </p>
+                      <p>
+                        <span className="font-medium">Version:</span> {formData.version || 'Not specified'}
                       </p>
                     </div>
                   </div>
@@ -707,10 +947,13 @@ export default function OnboardAPIPage() {
                         <span className="font-medium">Method:</span> {authMethod || "Not configured"}
                       </p>
                       <p>
-                        <span className="font-medium">Rate Limiting:</span> Enabled
+                        <span className="font-medium">Rate Limiting:</span> {formData.rateLimit ? 'Enabled' : 'Disabled'}
                       </p>
                       <p>
-                        <span className="font-medium">HTTPS Only:</span> Required
+                        <span className="font-medium">HTTPS Only:</span> {formData.httpsOnly ? 'Required' : 'Optional'}
+                      </p>
+                      <p>
+                        <span className="font-medium">IP Whitelisting:</span> {formData.ipWhitelist ? 'Enabled' : 'Disabled'}
                       </p>
                     </div>
                   </div>
@@ -719,10 +962,16 @@ export default function OnboardAPIPage() {
                     <h3 className="font-semibold text-foreground mb-2">Monitoring</h3>
                     <div className="bg-muted/30 rounded-lg p-4 space-y-2">
                       <p>
-                        <span className="font-medium">Uptime Monitoring:</span> Enabled
+                        <span className="font-medium">Uptime Monitoring:</span> {formData.uptimeMonitoring ? 'Enabled' : 'Disabled'}
                       </p>
                       <p>
-                        <span className="font-medium">Performance Tracking:</span> Enabled
+                        <span className="font-medium">Performance Tracking:</span> {formData.performanceTracking ? 'Enabled' : 'Disabled'}
+                      </p>
+                      <p>
+                        <span className="font-medium">Error Monitoring:</span> {formData.errorMonitoring ? 'Enabled' : 'Disabled'}
+                      </p>
+                      <p>
+                        <span className="font-medium">Usage Tracking:</span> {formData.usageTracking ? 'Enabled' : 'Disabled'}
                       </p>
                       <p>
                         <span className="font-medium">Webhook URL:</span> {webhookUrl || "Not configured"}
@@ -734,14 +983,22 @@ export default function OnboardAPIPage() {
                     <h3 className="font-semibold text-foreground mb-2">Pricing</h3>
                     <div className="bg-muted/30 rounded-lg p-4 space-y-2">
                       <p>
-                        <span className="font-medium">Model:</span> Per Request
+                        <span className="font-medium">Model:</span> {pricingModels.find(m => m.value === formData.pricingModel)?.label || 'Not selected'}
                       </p>
                       <p>
-                        <span className="font-medium">Price:</span> $0.01 USD per request
+                        <span className="font-medium">Price:</span> {formData.pricingModel === 'free' ? 'Free' : `$${formData.price} ${formData.currency} ${formData.pricingModel === 'per_request' ? 'per request' : `per ${formData.pricingModel.replace('ly', '')}`}`}
                       </p>
                       <p>
-                        <span className="font-medium">Free Tier:</span> 1,000 requests/month
+                        <span className="font-medium">Request Limit:</span> {formData.requestLimit.toLocaleString()} requests
                       </p>
+                      <p>
+                        <span className="font-medium">Rate Limit:</span> {formData.rateLimitPerMin} requests/minute
+                      </p>
+                      {formData.freeTierEnabled && (
+                        <p>
+                          <span className="font-medium">Free Tier:</span> {formData.requestLimit.toLocaleString()} requests/month
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -749,19 +1006,31 @@ export default function OnboardAPIPage() {
                     <h3 className="font-semibold text-foreground mb-2">Terms & Conditions</h3>
                     <div className="space-y-3">
                       <div className="flex items-center space-x-2">
-                        <Checkbox id="terms" />
+                        <Checkbox 
+                          id="terms"
+                          checked={formData.termsAccepted}
+                          onCheckedChange={(checked) => updateFormData("termsAccepted", checked)}
+                        />
                         <Label htmlFor="terms" className="text-sm text-muted-foreground">
                           I agree to the Veil API Provider Terms of Service
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Checkbox id="sla" />
+                        <Checkbox 
+                          id="sla"
+                          checked={formData.slaAccepted}
+                          onCheckedChange={(checked) => updateFormData("slaAccepted", checked)}
+                        />
                         <Label htmlFor="sla" className="text-sm text-muted-foreground">
                           I commit to maintaining 99% uptime SLA
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Checkbox id="support" />
+                        <Checkbox 
+                          id="support"
+                          checked={formData.supportAccepted}
+                          onCheckedChange={(checked) => updateFormData("supportAccepted", checked)}
+                        />
                         <Label htmlFor="support" className="text-sm text-muted-foreground">
                           I will provide timely support to API users
                         </Label>
@@ -787,7 +1056,13 @@ export default function OnboardAPIPage() {
                   Next
                 </Button>
               ) : (
-                <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Submit for Review</Button>
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {loading ? "Submitting..." : "Submit for Review"}
+                </Button>
               )}
             </div>
           </div>

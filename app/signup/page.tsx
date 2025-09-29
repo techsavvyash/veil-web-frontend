@@ -19,7 +19,6 @@ export default function SignupPage() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "buyer" as "buyer" | "seller",
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -57,7 +56,6 @@ export default function SignupPage() {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        role: formData.role,
       })
       router.push("/dashboard")
     } catch (err) {

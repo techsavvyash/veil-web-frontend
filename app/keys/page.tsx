@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -31,71 +31,101 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
+  Loader2,
+  BarChart3,
+  TrendingUp,
 } from "lucide-react"
 import { Navigation } from "@/components/navigation"
+import { apiClient } from "@/lib/api-client"
+import type { ApiKey, Subscription, CreateApiKeyRequest } from "@/lib/types"
 
-// Mock data
-const apiKeys = [
-  {
-    id: "1",
-    name: "Weather Pro API - Production",
-    apiName: "Weather Pro API",
-    key: "veil_live_sk_1234567890abcdef",
-    status: "active",
-    created: "2024-01-15",
-    lastUsed: "2024-01-20",
-    requests: 45230,
-    limit: 100000,
-    environment: "production",
-  },
-  {
-    id: "2",
-    name: "AI Text Analyzer - Development",
-    apiName: "AI Text Analyzer",
-    key: "veil_test_sk_abcdef1234567890",
-    status: "active",
-    created: "2024-01-10",
-    lastUsed: "2024-01-19",
-    requests: 12450,
-    limit: 50000,
-    environment: "development",
-  },
-  {
-    id: "3",
-    name: "Crypto Market Data - Production",
-    apiName: "Crypto Market Data",
-    key: "veil_live_sk_fedcba0987654321",
-    status: "revoked",
-    created: "2023-12-20",
-    lastUsed: "2024-01-18",
-    requests: 89760,
-    limit: 200000,
-    environment: "production",
-  },
-]
-
-const usageData = [
-  { date: "Jan 14", requests: 1200 },
-  { date: "Jan 15", requests: 1800 },
-  { date: "Jan 16", requests: 2400 },
-  { date: "Jan 17", requests: 1900 },
-  { date: "Jan 18", requests: 3200 },
-  { date: "Jan 19", requests: 2800 },
-  { date: "Jan 20", requests: 4100 },
-]
-
-const errorData = [
-  { type: "200 OK", count: 42150, color: "#22c55e" },
-  { type: "400 Bad Request", count: 1250, color: "#f59e0b" },
-  { type: "401 Unauthorized", count: 890, color: "#ef4444" },
-  { type: "429 Rate Limited", count: 340, color: "#8b5cf6" },
-  { type: "500 Server Error", count: 120, color: "#6b7280" },
-]
 
 export default function APIKeysPage() {
-  const [selectedKey, setSelectedKey] = useState(apiKeys[0])
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null)
   const [showKey, setShowKey] = useState<{ [key: string]: boolean }>({})
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isCreating, setIsCreating] = useState(false)
+  const [newKeyName, setNewKeyName] = useState("")
+  const [selectedSubscriptionUid, setSelectedSubscriptionUid] = useState<string>("")
+
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true)
+        const [keysResponse, subscriptionsResponse] = await Promise.all([
+          apiClient.getApiKeys(),
+          apiClient.getUserSubscriptions()
+        ])
+
+        // Handle API response format - backend returns { apiKeys: [...] }
+        const keys = keysResponse.apiKeys || keysResponse || []
+        const subs = subscriptionsResponse.subscriptions || subscriptionsResponse || []
+
+        setApiKeys(keys)
+        setSubscriptions(subs)
+
+        // Set first key as selected if available
+        if (keys.length > 0 && !selectedKey) {
+          setSelectedKey(keys[0])
+        }
+      } catch (error) {
+        console.error('Failed to load data:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadData()
+  }, [])
+
+  const handleCreateApiKey = async () => {
+    if (!newKeyName.trim() || !selectedSubscriptionUid) return
+
+    try {
+      setIsCreating(true)
+      const newKey = await apiClient.createApiKey(selectedSubscriptionUid, {
+        name: newKeyName.trim()
+      })
+
+      setApiKeys(prev => [...prev, newKey])
+      setSelectedKey(newKey)
+      setIsCreateDialogOpen(false)
+      setNewKeyName("")
+      setSelectedSubscriptionUid("")
+    } catch (error) {
+      console.error('Failed to create API key:', error)
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const handleRegenerateKey = async (keyUid: string) => {
+    try {
+      const regeneratedKey = await apiClient.regenerateApiKey(keyUid)
+      setApiKeys(prev => prev.map(key => key.uid === keyUid ? regeneratedKey : key))
+      if (selectedKey?.uid === keyUid) {
+        setSelectedKey(regeneratedKey)
+      }
+    } catch (error) {
+      console.error('Failed to regenerate API key:', error)
+    }
+  }
+
+  const handleDeleteKey = async (keyUid: string) => {
+    try {
+      await apiClient.deleteApiKey(keyUid)
+      setApiKeys(prev => prev.filter(key => key.uid !== keyUid))
+      if (selectedKey?.uid === keyUid) {
+        setSelectedKey(apiKeys.length > 1 ? apiKeys.find(k => k.uid !== keyUid) || null : null)
+      }
+    } catch (error) {
+      console.error('Failed to delete API key:', error)
+    }
+  }
 
   const toggleKeyVisibility = (keyId: string) => {
     setShowKey((prev) => ({ ...prev, [keyId]: !prev[keyId] }))
@@ -107,6 +137,14 @@ export default function APIKeysPage() {
 
   const maskKey = (key: string) => {
     return key.substring(0, 12) + "..." + key.substring(key.length - 4)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   return (
@@ -135,29 +173,43 @@ export default function APIKeysPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="keyName">Key Name</Label>
-                  <Input id="keyName" placeholder="e.g., Production Key" />
+                  <Input
+                    id="keyName"
+                    placeholder="e.g., Production Key"
+                    value={newKeyName}
+                    onChange={(e) => setNewKeyName(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="apiSelect">Select API</Label>
-                  <select className="w-full p-2 border border-border rounded-md bg-input">
-                    <option>Weather Pro API</option>
-                    <option>AI Text Analyzer</option>
-                    <option>Crypto Market Data</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="environment">Environment</Label>
-                  <select className="w-full p-2 border border-border rounded-md bg-input">
-                    <option>Production</option>
-                    <option>Development</option>
-                    <option>Testing</option>
+                  <select
+                    className="w-full p-2 border border-border rounded-md bg-input"
+                    value={selectedSubscriptionUid}
+                    onChange={(e) => setSelectedSubscriptionUid(e.target.value)}
+                  >
+                    <option value="">Select a subscription</option>
+                    {subscriptions.filter(sub => sub.isActive ?? sub.is_active).map(sub => (
+                      <option key={sub.uid} value={sub.uid}>
+                        {sub.api?.name || 'Unknown API'} - {sub.status}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Generate Key</Button>
+                  <Button
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    onClick={handleCreateApiKey}
+                    disabled={isCreating || !newKeyName.trim() || !selectedSubscriptionUid}
+                  >
+                    {isCreating ? (
+                      <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</>
+                    ) : (
+                      'Generate Key'
+                    )}
+                  </Button>
                 </div>
               </div>
             </DialogContent>
@@ -174,32 +226,40 @@ export default function APIKeysPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {apiKeys.map((key) => (
-                    <div
-                      key={key.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                        selectedKey.id === key.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                      onClick={() => setSelectedKey(key)}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-foreground text-sm">{key.name}</h4>
-                        <Badge variant={key.status === "active" ? "default" : "destructive"} className="text-xs">
-                          {key.status}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-muted-foreground mb-2">
-                        {showKey[key.id] ? key.key : maskKey(key.key)}
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Usage: {((key.requests / key.limit) * 100).toFixed(1)}%</span>
-                        <span>Last used: {key.lastUsed}</span>
-                      </div>
-                      <Progress value={(key.requests / key.limit) * 100} className="mt-2 h-1" />
+                  {apiKeys.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Key className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium text-foreground mb-2">No API Keys</h3>
+                      <p className="text-muted-foreground mb-4">Create your first API key to get started</p>
                     </div>
-                  ))}
+                  ) : (
+                    apiKeys.map((key) => (
+                      <div
+                        key={key.uid}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedKey?.uid === key.uid
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                        onClick={() => setSelectedKey(key)}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-foreground text-sm">{key.name}</h4>
+                          <Badge variant={(key.isActive ?? key.is_active) ? "default" : "destructive"} className="text-xs">
+                            {(key.isActive ?? key.is_active) ? "active" : "inactive"}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground mb-2">
+                          {showKey[key.uid] ? (key.keyValue || key.key_value) : maskKey(key.keyValue || key.key_value)}
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Usage: {key.subscription ? ((key.subscription.requestsUsed || 0) / (key.subscription.requestsLimit || 1000) * 100).toFixed(1) : '0'}%</span>
+                          <span>Last used: {key.lastUsed || key.last_used || 'Never'}</span>
+                        </div>
+                        <Progress value={key.subscription ? ((key.subscription.requestsUsed || 0) / (key.subscription.requestsLimit || 1000) * 100) : 0} className="mt-2 h-1" />
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -215,13 +275,15 @@ export default function APIKeysPage() {
               </TabsList>
 
               <TabsContent value="overview" className="space-y-6">
+                {selectedKey ? (
+                  <>
                 {/* Key Info Card */}
                 <Card className="border-border">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="text-foreground">{selectedKey.name}</CardTitle>
-                        <CardDescription>{selectedKey.apiName}</CardDescription>
+                        <CardDescription>{selectedKey.subscription?.api?.name || 'Unknown API'}</CardDescription>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -230,15 +292,15 @@ export default function APIKeysPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleRegenerateKey(selectedKey.uid)}>
                             <RefreshCw className="h-4 w-4 mr-2" />
                             Regenerate Key
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => copyToClipboard(selectedKey.keyValue || selectedKey.key_value)}>
                             <Copy className="h-4 w-4 mr-2" />
                             Copy Key
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteKey(selectedKey.uid)}>
                             <Trash2 className="h-4 w-4 mr-2" />
                             Revoke Key
                           </DropdownMenuItem>
@@ -251,22 +313,22 @@ export default function APIKeysPage() {
                       <div className="flex items-center space-x-2">
                         <Key className="h-4 w-4 text-muted-foreground" />
                         <code className="text-sm font-mono">
-                          {showKey[selectedKey.id] ? selectedKey.key : maskKey(selectedKey.key)}
+                          {showKey[selectedKey.uid] ? (selectedKey.keyValue || selectedKey.key_value) : maskKey(selectedKey.keyValue || selectedKey.key_value)}
                         </code>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => toggleKeyVisibility(selectedKey.id)}
+                          onClick={() => toggleKeyVisibility(selectedKey.uid)}
                           className="bg-transparent"
                         >
-                          {showKey[selectedKey.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showKey[selectedKey.uid] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => copyToClipboard(selectedKey.key)}
+                          onClick={() => copyToClipboard(selectedKey.keyValue || selectedKey.key_value)}
                           className="bg-transparent"
                         >
                           <Copy className="h-4 w-4" />
@@ -277,22 +339,22 @@ export default function APIKeysPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-foreground">
-                          {selectedKey.requests.toLocaleString()}
+                          {(selectedKey.requestsUsed || selectedKey.requests_used || 0).toLocaleString()}
                         </div>
                         <div className="text-sm text-muted-foreground">Requests</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-foreground">{selectedKey.limit.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-foreground">{(selectedKey.subscription?.requestsLimit || selectedKey.subscription?.requests_limit || 1000).toLocaleString()}</div>
                         <div className="text-sm text-muted-foreground">Limit</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-foreground">
-                          {((selectedKey.requests / selectedKey.limit) * 100).toFixed(1)}%
+                          {(((selectedKey.requestsUsed || selectedKey.requests_used || 0) / (selectedKey.subscription?.requestsLimit || selectedKey.subscription?.requests_limit || 1000)) * 100).toFixed(1)}%
                         </div>
                         <div className="text-sm text-muted-foreground">Usage</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-foreground">99.8%</div>
+                        <div className="text-2xl font-bold text-foreground">N/A</div>
                         <div className="text-sm text-muted-foreground">Uptime</div>
                       </div>
                     </div>
@@ -301,10 +363,10 @@ export default function APIKeysPage() {
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Usage this month</span>
                         <span className="text-foreground">
-                          {selectedKey.requests.toLocaleString()} / {selectedKey.limit.toLocaleString()}
+                          {(selectedKey.requestsUsed || selectedKey.requests_used || 0).toLocaleString()} / {(selectedKey.subscription?.requestsLimit || selectedKey.subscription?.requests_limit || 1000).toLocaleString()}
                         </span>
                       </div>
-                      <Progress value={(selectedKey.requests / selectedKey.limit) * 100} className="h-2" />
+                      <Progress value={((selectedKey.requestsUsed || selectedKey.requests_used || 0) / (selectedKey.subscription?.requestsLimit || selectedKey.subscription?.requests_limit || 1000)) * 100} className="h-2" />
                     </div>
                   </CardContent>
                 </Card>
@@ -317,7 +379,7 @@ export default function APIKeysPage() {
                         <Activity className="h-5 w-5 text-green-500" />
                         <div>
                           <div className="text-sm text-muted-foreground">Status</div>
-                          <div className="font-medium text-foreground capitalize">{selectedKey.status}</div>
+                          <div className="font-medium text-foreground capitalize">{(selectedKey.isActive ?? selectedKey.is_active) ? 'Active' : 'Inactive'}</div>
                         </div>
                       </div>
                     </CardContent>
@@ -328,7 +390,7 @@ export default function APIKeysPage() {
                         <Clock className="h-5 w-5 text-blue-500" />
                         <div>
                           <div className="text-sm text-muted-foreground">Created</div>
-                          <div className="font-medium text-foreground">{selectedKey.created}</div>
+                          <div className="font-medium text-foreground">{new Date(selectedKey.createdAt || selectedKey.created_at).toLocaleDateString()}</div>
                         </div>
                       </div>
                     </CardContent>
@@ -338,13 +400,25 @@ export default function APIKeysPage() {
                       <div className="flex items-center space-x-2">
                         <CheckCircle className="h-5 w-5 text-primary" />
                         <div>
-                          <div className="text-sm text-muted-foreground">Environment</div>
-                          <div className="font-medium text-foreground capitalize">{selectedKey.environment}</div>
+                          <div className="text-sm text-muted-foreground">Last Used</div>
+                          <div className="font-medium text-foreground">
+                            {(selectedKey.lastUsed || selectedKey.last_used) ? new Date(selectedKey.lastUsed || selectedKey.last_used).toLocaleDateString() : 'Never'}
+                          </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
+                  </>
+                ) : (
+                  <Card className="border-border">
+                    <CardContent className="p-8 text-center">
+                      <Key className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium text-foreground mb-2">No API Key Selected</h3>
+                      <p className="text-muted-foreground mb-4">Select an API key from the list to view its details</p>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="analytics" className="space-y-6">
@@ -355,21 +429,13 @@ export default function APIKeysPage() {
                     <CardDescription>Daily API requests over the last 7 days</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={usageData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#5C5D5F" opacity={0.3} />
-                        <XAxis dataKey="date" stroke="#5C5D5F" />
-                        <YAxis stroke="#5C5D5F" />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "white",
-                            border: "1px solid #5C5D5F",
-                            borderRadius: "8px",
-                          }}
-                        />
-                        <Line type="monotone" dataKey="requests" stroke="#3C3D3F" strokeWidth={2} />
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <div className="h-[300px] flex flex-col items-center justify-center text-center">
+                      <TrendingUp className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium text-foreground mb-2">Analytics Coming Soon</h3>
+                      <p className="text-muted-foreground max-w-sm">
+                        Detailed usage analytics and request volume charts will be available here once we integrate with our analytics service.
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -380,21 +446,13 @@ export default function APIKeysPage() {
                     <CardDescription>HTTP response codes for the last 30 days</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={errorData} layout="horizontal">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#5C5D5F" opacity={0.3} />
-                        <XAxis type="number" stroke="#5C5D5F" />
-                        <YAxis dataKey="type" type="category" stroke="#5C5D5F" width={120} />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: "white",
-                            border: "1px solid #5C5D5F",
-                            borderRadius: "8px",
-                          }}
-                        />
-                        <Bar dataKey="count" fill="#3C3D3F" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <div className="h-[300px] flex flex-col items-center justify-center text-center">
+                      <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium text-foreground mb-2">Response Analytics Coming Soon</h3>
+                      <p className="text-muted-foreground max-w-sm">
+                        Response status distribution charts and error analytics will be available here once we integrate with our monitoring service.
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -410,7 +468,7 @@ export default function APIKeysPage() {
                       <Label htmlFor="keyName" className="text-foreground">
                         Key Name
                       </Label>
-                      <Input id="keyName" value={selectedKey.name} className="bg-input border-border" />
+                      <Input id="keyName" value={selectedKey?.name || ''} className="bg-input border-border" />
                     </div>
 
                     <div className="space-y-2">
@@ -476,6 +534,7 @@ export default function APIKeysPage() {
                       <Button
                         variant="outline"
                         className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground bg-transparent"
+                        onClick={() => selectedKey && handleRegenerateKey(selectedKey.uid)}
                       >
                         Regenerate
                       </Button>
@@ -485,7 +544,7 @@ export default function APIKeysPage() {
                         <h4 className="font-medium text-foreground">Revoke API Key</h4>
                         <p className="text-sm text-muted-foreground">Permanently disable this key</p>
                       </div>
-                      <Button variant="destructive">Revoke Key</Button>
+                      <Button variant="destructive" onClick={() => selectedKey && handleDeleteKey(selectedKey.uid)}>Revoke Key</Button>
                     </div>
                   </CardContent>
                 </Card>

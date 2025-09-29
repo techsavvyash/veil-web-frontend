@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth"
 
@@ -84,7 +85,7 @@ export default function LoginPage() {
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <input type="checkbox" id="remember" className="rounded border-border" />
+                  <Checkbox id="remember" />
                   <Label htmlFor="remember" className="text-sm text-muted-foreground">
                     Remember me
                   </Label>
