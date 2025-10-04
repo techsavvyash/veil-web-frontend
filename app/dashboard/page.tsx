@@ -127,30 +127,14 @@ export default function DashboardPage() {
   // Toggle API status
   const toggleAPIStatus = async (uid: string) => {
     try {
-      const token = localStorage.getItem('auth_token')
-      if (!token) return
+      const response = await apiClient.toggleApiStatus(uid)
 
-      const response = await fetch(`http://localhost:3000/api/v1/seller/apis/${uid}/toggle-status`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to toggle API status')
-      }
-
-      const data = await response.json()
-      if (data.success) {
-        // Update the API in the local state
-        setMyAPIs(prev => prev.map(api =>
-          api.uid === uid
-            ? { ...api, isActive: data.data.api.isActive }
-            : api
-        ))
-      }
+      // Update the API in the local state
+      setMyAPIs(prev => prev.map(api =>
+        api.uid === uid
+          ? { ...api, isActive: response.api.isActive }
+          : api
+      ))
     } catch (err) {
       console.error('Error toggling API status:', err)
     }

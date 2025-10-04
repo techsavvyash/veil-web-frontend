@@ -165,6 +165,12 @@ class ApiClient {
     return this.request(`/api/v1/seller/apis/${uid}/analytics`)
   }
 
+  async toggleApiStatus(uid: string): Promise<{ api: ApiListing }> {
+    return this.request<{ api: ApiListing }>(`/api/v1/seller/apis/${uid}/toggle-status`, {
+      method: "PATCH",
+    })
+  }
+
   // API Keys endpoints
   async getApiKeys(): Promise<ApiKey[]> {
     return this.request<ApiKey[]>("/api/v1/api-keys/")

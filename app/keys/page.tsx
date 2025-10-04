@@ -135,7 +135,8 @@ export default function APIKeysPage() {
     navigator.clipboard.writeText(text)
   }
 
-  const maskKey = (key: string) => {
+  const maskKey = (key: string | undefined) => {
+    if (!key) return 'N/A'
     return key.substring(0, 12) + "..." + key.substring(key.length - 4)
   }
 
@@ -188,7 +189,7 @@ export default function APIKeysPage() {
                     onChange={(e) => setSelectedSubscriptionUid(e.target.value)}
                   >
                     <option value="">Select a subscription</option>
-                    {subscriptions.filter(sub => sub.isActive ?? sub.is_active).map(sub => (
+                    {subscriptions.filter(sub => sub.status === 'active').map(sub => (
                       <option key={sub.uid} value={sub.uid}>
                         {sub.api?.name || 'Unknown API'} - {sub.status}
                       </option>
