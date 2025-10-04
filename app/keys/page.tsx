@@ -284,7 +284,7 @@ export default function APIKeysPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <CardTitle className="text-foreground">{selectedKey.name}</CardTitle>
-                        <CardDescription>{selectedKey.subscription?.api?.name || 'Unknown API'}</CardDescription>
+                        <CardDescription>{selectedKey.api?.name || selectedKey.subscription?.api?.name || 'Unknown API'}</CardDescription>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
