@@ -173,25 +173,33 @@ class ApiClient {
 
   // API Keys endpoints
   async getApiKeys(): Promise<ApiKey[]> {
-    return this.request<ApiKey[]>("/api/v1/api-keys/")
+    const response = await this.request<{ apiKeys: ApiKey[], pagination: any }>("/api/v1/api-keys/")
+    // Unwrap the apiKeys array from the response
+    return response.apiKeys
   }
 
   async createApiKey(subscriptionUid: string, data: CreateApiKeyRequest): Promise<ApiKey> {
-    return this.request<ApiKey>(`/api/v1/api-keys/subscription/${subscriptionUid}`, {
+    const response = await this.request<{ apiKey: ApiKey }>(`/api/v1/api-keys/subscription/${subscriptionUid}`, {
       method: "POST",
       body: JSON.stringify(data),
     })
+    // Unwrap the nested apiKey from the response
+    return response.apiKey
   }
 
   async getApiKeyDetails(uid: string): Promise<ApiKey> {
-    return this.request<ApiKey>(`/api/v1/api-keys/${uid}`)
+    const response = await this.request<{ apiKey: ApiKey }>(`/api/v1/api-keys/${uid}`)
+    // Unwrap the nested apiKey from the response
+    return response.apiKey
   }
 
   async updateApiKey(uid: string, data: Partial<CreateApiKeyRequest>): Promise<ApiKey> {
-    return this.request<ApiKey>(`/api/v1/api-keys/${uid}`, {
+    const response = await this.request<{ apiKey: ApiKey }>(`/api/v1/api-keys/${uid}`, {
       method: "PUT",
       body: JSON.stringify(data),
     })
+    // Unwrap the nested apiKey from the response
+    return response.apiKey
   }
 
   async deleteApiKey(uid: string): Promise<void> {
@@ -201,9 +209,11 @@ class ApiClient {
   }
 
   async regenerateApiKey(uid: string): Promise<ApiKey> {
-    return this.request<ApiKey>(`/api/v1/api-keys/${uid}/regenerate`, {
+    const response = await this.request<{ apiKey: ApiKey }>(`/api/v1/api-keys/${uid}/regenerate`, {
       method: "POST",
     })
+    // Unwrap the nested apiKey from the response
+    return response.apiKey
   }
 
   // Profile endpoints
