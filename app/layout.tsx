@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth"
+import { Toaster } from "@/components/toaster"
 
 export const metadata: Metadata = {
   title: "Veil - API Marketplace",
@@ -33,6 +34,7 @@ html {
           <AuthProvider>
             {children}
           </AuthProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

@@ -38,6 +38,7 @@ import {
 import { Navigation } from "@/components/navigation"
 import { apiClient } from "@/lib/api-client"
 import type { ApiKey, Subscription, CreateApiKeyRequest } from "@/lib/types"
+import { toast } from "sonner"
 
 
 export default function APIKeysPage() {
@@ -133,6 +134,7 @@ export default function APIKeysPage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
+    toast.success("Copied to clipboard!")
   }
 
   const maskKey = (key: string | undefined) => {
@@ -340,7 +342,7 @@ export default function APIKeysPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-foreground">
-                          {(selectedKey.requestsUsed || selectedKey.requests_used || 0).toLocaleString()}
+                          {(selectedKey.subscription?.requestsUsed || selectedKey.subscription?.requests_used || 0).toLocaleString()}
                         </div>
                         <div className="text-sm text-muted-foreground">Requests</div>
                       </div>
@@ -350,7 +352,7 @@ export default function APIKeysPage() {
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-foreground">
-                          {(((selectedKey.requestsUsed || selectedKey.requests_used || 0) / (selectedKey.subscription?.requestsLimit || selectedKey.subscription?.requests_limit || 1000)) * 100).toFixed(1)}%
+                          {(((selectedKey.subscription?.requestsUsed || selectedKey.subscription?.requests_used || 0) / (selectedKey.subscription?.requestsLimit || selectedKey.subscription?.requests_limit || 1000)) * 100).toFixed(1)}%
                         </div>
                         <div className="text-sm text-muted-foreground">Usage</div>
                       </div>
@@ -364,10 +366,10 @@ export default function APIKeysPage() {
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Usage this month</span>
                         <span className="text-foreground">
-                          {(selectedKey.requestsUsed || selectedKey.requests_used || 0).toLocaleString()} / {(selectedKey.subscription?.requestsLimit || selectedKey.subscription?.requests_limit || 1000).toLocaleString()}
+                          {(selectedKey.subscription?.requestsUsed || selectedKey.subscription?.requests_used || 0).toLocaleString()} / {(selectedKey.subscription?.requestsLimit || selectedKey.subscription?.requests_limit || 1000).toLocaleString()}
                         </span>
                       </div>
-                      <Progress value={((selectedKey.requestsUsed || selectedKey.requests_used || 0) / (selectedKey.subscription?.requestsLimit || selectedKey.subscription?.requests_limit || 1000)) * 100} className="h-2" />
+                      <Progress value={((selectedKey.subscription?.requestsUsed || selectedKey.subscription?.requests_used || 0) / (selectedKey.subscription?.requestsLimit || selectedKey.subscription?.requests_limit || 1000)) * 100} className="h-2" />
                     </div>
                   </CardContent>
                 </Card>
