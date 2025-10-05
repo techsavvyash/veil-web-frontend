@@ -90,7 +90,10 @@ export default function LandingPage() {
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                   <Zap className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle className="text-foreground">Instant Payments</CardTitle>
+                <div className="flex items-center gap-2 mb-2">
+                  <CardTitle className="text-foreground">Instant Payments</CardTitle>
+                  <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                </div>
                 <CardDescription>
                   Automated billing and payouts with support for multiple payment methods
                 </CardDescription>
@@ -102,7 +105,10 @@ export default function LandingPage() {
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                   <TrendingUp className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle className="text-foreground">Analytics Dashboard</CardTitle>
+                <div className="flex items-center gap-2 mb-2">
+                  <CardTitle className="text-foreground">Analytics Dashboard</CardTitle>
+                  <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                </div>
                 <CardDescription>Detailed insights into API usage, revenue, and customer behavior</CardDescription>
               </CardHeader>
             </Card>
@@ -112,7 +118,10 @@ export default function LandingPage() {
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                   <Code className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle className="text-foreground">Developer Tools</CardTitle>
+                <div className="flex items-center gap-2 mb-2">
+                  <CardTitle className="text-foreground">Developer Tools</CardTitle>
+                  <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                </div>
                 <CardDescription>
                   SDKs, documentation generation, and testing tools for seamless integration
                 </CardDescription>
@@ -124,7 +133,10 @@ export default function LandingPage() {
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                   <Users className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle className="text-foreground">Global Marketplace</CardTitle>
+                <div className="flex items-center gap-2 mb-2">
+                  <CardTitle className="text-foreground">Global Marketplace</CardTitle>
+                  <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                </div>
                 <CardDescription>
                   Reach thousands of developers looking for APIs to power their applications
                 </CardDescription>
@@ -136,7 +148,10 @@ export default function LandingPage() {
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                   <Star className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle className="text-foreground">Quality Assurance</CardTitle>
+                <div className="flex items-center gap-2 mb-2">
+                  <CardTitle className="text-foreground">Quality Assurance</CardTitle>
+                  <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                </div>
                 <CardDescription>
                   Automated testing and monitoring to ensure your APIs are always available
                 </CardDescription>
