@@ -1,20 +1,21 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Montserrat } from "next/font/google"
-import { Fira_Code } from "next/font/google"
+import { Figtree } from "next/font/google"
+import { Instrument_Serif } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth"
 import { Toaster } from "@/components/toaster"
 
-const montserrat = Montserrat({
+const figtree = Figtree({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-figtree",
 })
 
-const firaCode = Fira_Code({
+const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
-  variable: "--font-mono",
+  weight: ["400"],
+  variable: "--font-instrument-serif",
 })
 
 export const metadata: Metadata = {
@@ -29,16 +30,16 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${montserrat.variable} ${firaCode.variable}`}>
+    <html lang="en" className={`${figtree.variable} ${instrumentSerif.variable}`}>
       <head>
         <style>{`
 html {
-  font-family: ${montserrat.style.fontFamily};
+  font-family: ${figtree.style.fontFamily};
 }
         `}</style>
       </head>
       <body>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
             {children}
           </AuthProvider>
